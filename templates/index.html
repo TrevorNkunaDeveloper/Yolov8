@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Vehicle and Object Detection with YOLOv8</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .card-custom {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+        }
+        .video-frame {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+            overflow: hidden;
+            width: 100%;
+        }
+        .video-frame img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .button-container button {
+            margin: 5px;
+        }
+        .lane-counts ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .lane-counts span {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 50%;
+        }
+        .lane-1 { background-color: #00ff00; }  /* Green */
+        .lane-2 { background-color: #ff0000; }  /* Red */
+        .lane-3 { background-color: #0000ff; }  /* Blue */
+        .lane-4 { background-color: #ffff00; }  /* Yellow */
+        .lane-5 { background-color: #ff00ff; }  /* Magenta */
+        .lane-6 { background-color: #00ffff; }  /* Cyan */
+        .lane-7 { background-color: #800080; }  /* Purple */
+        .lane-8 { background-color: #008080; }  /* Teal */
+    </style>
+    <script>
+        function startRecording() {
+            fetch('/start_recording');
+        }
+
+        function stopRecording() {
+            fetch('/stop_recording');
+        }
+
+        function takePicture() {
+            fetch('/take_picture');
+        }
+
+        function resetCounts() {
+            fetch('/reset_counts');
+        }
+
+        function updateCounts() {
+            fetch('/counts')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('inCount').innerText = data.incoming_car_count;
+                    document.getElementById('outCount').innerText = data.outgoing_car_count;
+                    document.getElementById('carCount').innerText = data.total_car_count;
+                    document.getElementById('otherObjectsCount').innerText = data.other_objects_count;
+                    for (let i = 0; i < data.lane_counts.length; i++) {
+                        document.getElementById('lane' + i + 'Count').innerText = data.lane_counts[i];
+                    }
+                })
+                .catch(error => console.error('Error fetching counts:', error));
+        }
+
+        setInterval(updateCounts, 1000);  // Update counts every second
+    </script>
+</head>
+<body>
+    <div class="container text-center">
+        <div class="header mb-4">
+            <h1 class="text-center">Real-Time Vehicle and Object Detection with YOLOv8</h1>
+        </div>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card card-custom">
+                    <div class="video-frame">
+                        <img src="{{ url_for('video_feed') }}" alt="Live Stream">
+                    </div>
+                    <div class="button-container mt-3">
+                        <button class="btn btn-primary" onclick="startRecording()">Start Recording</button>
+                        <button class="btn btn-secondary" onclick="stopRecording()">Stop Recording</button>
+                        <button class="btn btn-success" onclick="takePicture()">Take Picture</button>
+                        <button class="btn btn-danger" onclick="resetCounts()">Reset Counts</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-custom">
+                    <h2>Counts</h2>
+                    <p>Incoming Cars: <span id="inCount">0</span></p>
+                    <p>Outgoing Cars: <span id="outCount">0</span></p>
+                    <p>Total Cars: <span id="carCount">0</span></p>
+                    <p>Other Detected Objects: <span id="otherObjectsCount">0</span></p>
+                    <div class="lane-counts">
+                        <h3>Lane Counts:</h3>
+                        <ul>
+                            <li><span class="lane-1"></span> Lane 1: <span id="lane0Count">0</span></li>
+                            <li><span class="lane-2"></span> Lane 2: <span id="lane1Count">0</span></li>
+                            <li><span class="lane-3"></span> Lane 3: <span id="lane2Count">0</span></li>
+                            <li><span class="lane-4"></span> Lane 4: <span id="lane3Count">0</span></li>
+                            <li><span class="lane-5"></span> Lane 5: <span id="lane4Count">0</span></li>
+                            <li><span class="lane-6"></span> Lane 6: <span id="lane5Count">0</span></li>
+                            <li><span class="lane-7"></span> Lane 7: <span id="lane6Count">0</span></li>
+                            <li><span class="lane-8"></span> Lane 8: <span id="lane7Count">0</span></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card card-custom mt-3">
+                    <h3>Upload Video for Processing</h3>
+                    <form action="/upload_video" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <input type="file" name="file" class="form-control-file">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload Video</button>
+                    </form>
+                </div>
+                <div class="card card-custom mt-3">
+                    <h3>Upload Image for Processing</h3>
+                    <form action="/upload_image" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <input type="file" name="file" class="form-control-file">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload Image</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
